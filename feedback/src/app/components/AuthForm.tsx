@@ -6,27 +6,19 @@ import {
   TextField,
   Button,
   Typography,
-  ToggleButton,
-  ToggleButtonGroup,
   Alert,
-  Tabs,
-  Tab,
   Divider,
 } from '@mui/material';
 import { Google as GoogleIcon } from '@mui/icons-material';
-import { projectId, publicAnonKey } from '../../../utils/supabase/info';
 
 interface AuthFormProps {
   supabase: any;
 }
 
 export function AuthForm({ supabase }: AuthFormProps) {
-  const [mode, setMode] = useState<'login' | 'signup'>('login');
-  const [role, setRole] = useState<'student' | 'admin'>('student');
   const [formData, setFormData] = useState({
     email: '',
     password: '',
-    name: '',
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -59,43 +51,13 @@ export function AuthForm({ supabase }: AuthFormProps) {
     setLoading(true);
 
     try {
-      if (mode === 'signup') {
-        const response = await fetch(
-          `https://${projectId}.supabase.co/functions/v1/make-server-8a3aee84/signup`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${publicAnonKey}`,
-            },
-            body: JSON.stringify({
-              email: formData.email,
-              password: formData.password,
-              name: formData.name,
-              role,
-            }),
-          }
-        );
+      const { error } = await supabase.auth.signInWithPassword({
+        email: formData.email,
+        password: formData.password,
+      });
 
-        const data = await response.json();
-
-        if (!response.ok) {
-          throw new Error(data.error || 'Signup failed');
-        }
-
-        setError('');
-        alert('Account created successfully! Please sign in.');
-        setMode('login');
-        setFormData({ email: '', password: '', name: '' });
-      } else {
-        const { error } = await supabase.auth.signInWithPassword({
-          email: formData.email,
-          password: formData.password,
-        });
-
-        if (error) {
-          throw error;
-        }
+      if (error) {
+        throw error;
       }
     } catch (err: any) {
       console.error('Auth error:', err);
@@ -116,18 +78,12 @@ export function AuthForm({ supabase }: AuthFormProps) {
       >
         <CardContent sx={{ p: 4 }}>
           <Typography variant="h4" component="h1" gutterBottom align="center">
-            {mode === 'login' ? 'Sign In' : 'Create Account'}
+            Sign In
           </Typography>
 
-          <Tabs
-            value={mode}
-            onChange={(_, value) => setMode(value)}
-            centered
-            sx={{ mb: 3 }}
-          >
-            <Tab label="Sign In" value="login" />
-            <Tab label="Sign Up" value="signup" />
-          </Tabs>
+          <Typography variant="body2" color="text.secondary" align="center" sx={{ mb: 3 }}>
+            Sign in to access the feedback system
+          </Typography>
 
           <Button
             variant="outlined"
@@ -147,36 +103,7 @@ export function AuthForm({ supabase }: AuthFormProps) {
             </Typography>
           </Divider>
 
-          {mode === 'signup' && (
-            <Box sx={{ mb: 3 }}>
-              <Typography variant="subtitle2" gutterBottom>
-                Account Type
-              </Typography>
-              <ToggleButtonGroup
-                value={role}
-                exclusive
-                onChange={(_, value) => value && setRole(value)}
-                fullWidth
-              >
-                <ToggleButton value="student">Student</ToggleButton>
-                <ToggleButton value="admin">Admin</ToggleButton>
-              </ToggleButtonGroup>
-            </Box>
-          )}
-
           <form onSubmit={handleSubmit}>
-            {mode === 'signup' && (
-              <TextField
-                label="Full Name"
-                fullWidth
-                required
-                margin="normal"
-                value={formData.name}
-                onChange={(e) =>
-                  setFormData({ ...formData, name: e.target.value })
-                }
-              />
-            )}
 
             <TextField
               label="Email"
@@ -216,11 +143,7 @@ export function AuthForm({ supabase }: AuthFormProps) {
               disabled={loading}
               sx={{ mt: 3 }}
             >
-              {loading
-                ? 'Processing...'
-                : mode === 'login'
-                ? 'Sign In'
-                : 'Create Account'}
+              {loading ? 'Signing in...' : 'Sign In'}
             </Button>
           </form>
         </CardContent>
