@@ -7,6 +7,7 @@ import { ThemeProvider, useThemeMode } from '../context/ThemeContext';
 import { StudentView } from './components/StudentView';
 import { AdminView } from './components/AdminView';
 import { AuthForm } from './components/AuthForm';
+import { RoleSelection } from './components/RoleSelection';
 
 function AppContent() {
   const [session, setSession] = useState<any>(null);
@@ -59,6 +60,15 @@ function AppContent() {
     setUserRole(null);
   };
 
+  const handleRoleSet = async () => {
+    // Reload the session to get updated user metadata
+    const { data: { session: updatedSession } } = await supabase.auth.getSession();
+    setSession(updatedSession);
+    if (updatedSession?.user?.user_metadata?.role) {
+      setUserRole(updatedSession.user.user_metadata.role);
+    }
+  };
+
   if (loading) {
     return (
       <Box className="flex items-center justify-center min-h-screen">
@@ -108,6 +118,8 @@ function AppContent() {
       <Container maxWidth="lg" sx={{ mt: 4, pb: 4 }}>
         {!session ? (
           <AuthForm supabase={supabase} />
+        ) : !userRole ? (
+          <RoleSelection user={session.user} onRoleSet={handleRoleSet} />
         ) : userRole === 'student' ? (
           <StudentView session={session} />
         ) : userRole === 'admin' ? (

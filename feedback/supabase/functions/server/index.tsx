@@ -119,10 +119,15 @@ app.post("/make-server-8a3aee84/feedback", async (c) => {
       return c.json({ error: 'Only students can submit feedback' }, 403);
     }
 
-    const { title, description, attachments } = await c.req.json();
+    const { title, description, attachments, category } = await c.req.json();
 
-    if (!title || !description) {
-      return c.json({ error: 'Missing required fields: title, description' }, 400);
+    if (!title || !description || !category) {
+      return c.json({ error: 'Missing required fields: title, description, category' }, 400);
+    }
+
+    const validCategories = ['Bug Report', 'Feature Request', 'Question', 'Complaint', 'Suggestion'];
+    if (!validCategories.includes(category)) {
+      return c.json({ error: 'Invalid category. Must be one of: Bug Report, Feature Request, Question, Complaint, Suggestion' }, 400);
     }
 
     const feedbackId = crypto.randomUUID();
@@ -133,6 +138,7 @@ app.post("/make-server-8a3aee84/feedback", async (c) => {
       studentEmail: user.email,
       title,
       description,
+      category,
       attachments: attachments || [],
       status: 'pending',
       createdAt: new Date().toISOString()
@@ -210,7 +216,7 @@ app.put("/make-server-8a3aee84/feedback/:id", async (c) => {
     }
 
     const feedbackId = c.req.param('id');
-    const { status } = await c.req.json();
+    const { status, adminComment } = await c.req.json();
 
     if (!status || !['pending', 'accepted', 'declined'].includes(status)) {
       return c.json({ error: 'Invalid status. Must be: pending, accepted, or declined' }, 400);
@@ -225,6 +231,7 @@ app.put("/make-server-8a3aee84/feedback/:id", async (c) => {
     const updatedFeedback = {
       ...feedback,
       status,
+      adminComment: adminComment || '',
       reviewedBy: user.user_metadata?.name,
       reviewedAt: new Date().toISOString()
     };

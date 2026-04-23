@@ -14,6 +14,17 @@ import {
   Link,
   Button,
   ButtonGroup,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  ToggleButtonGroup,
+  ToggleButton,
 } from '@mui/material';
 import {
   ExpandMore as ExpandMoreIcon,
@@ -23,6 +34,7 @@ import {
 } from '@mui/icons-material';
 import { projectId } from '../../../utils/supabase/info';
 import { supabase } from '../../utils/supabase';
+import { CATEGORIES, getCategoryColor } from '../../utils/categoryUtils';
 
 interface AdminViewProps {
   session: any;
@@ -35,9 +47,13 @@ interface Feedback {
   studentEmail: string;
   title: string;
   description: string;
+  category: string;
   attachments: any[];
   status: string;
   createdAt: string;
+  adminComment?: string;
+  reviewedBy?: string;
+  reviewedAt?: string;
 }
 
 export function AdminView({ session }: AdminViewProps) {
@@ -45,6 +61,11 @@ export function AdminView({ session }: AdminViewProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [commentDialogOpen, setCommentDialogOpen] = useState(false);
+  const [selectedFeedback, setSelectedFeedback] = useState<{ id: string; status: 'accepted' | 'declined' } | null>(null);
+  const [adminComment, setAdminComment] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
 
   useEffect(() => {
     loadFeedback();
@@ -91,9 +112,24 @@ export function AdminView({ session }: AdminViewProps) {
     }
   };
 
-  const updateFeedbackStatus = async (feedbackId: string, status: 'accepted' | 'declined') => {
-    setUpdatingId(feedbackId);
+  const openCommentDialog = (feedbackId: string, status: 'accepted' | 'declined') => {
+    setSelectedFeedback({ id: feedbackId, status });
+    setAdminComment('');
+    setCommentDialogOpen(true);
+  };
+
+  const closeCommentDialog = () => {
+    setCommentDialogOpen(false);
+    setSelectedFeedback(null);
+    setAdminComment('');
+  };
+
+  const submitFeedbackUpdate = async () => {
+    if (!selectedFeedback) return;
+
+    setUpdatingId(selectedFeedback.id);
     setError('');
+    setCommentDialogOpen(false);
 
     try {
       const { data: { session: currentSession } } = await supabase.auth.getSession();
@@ -102,14 +138,17 @@ export function AdminView({ session }: AdminViewProps) {
       }
 
       const response = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/make-server-8a3aee84/feedback/${feedbackId}`,
+        `https://${projectId}.supabase.co/functions/v1/make-server-8a3aee84/feedback/${selectedFeedback.id}`,
         {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${currentSession.access_token}`,
           },
-          body: JSON.stringify({ status }),
+          body: JSON.stringify({
+            status: selectedFeedback.status,
+            adminComment: adminComment.trim(),
+          }),
         }
       );
 
@@ -122,6 +161,8 @@ export function AdminView({ session }: AdminViewProps) {
 
       // Reload feedback list to show updated status
       await loadFeedback();
+      setAdminComment('');
+      setSelectedFeedback(null);
     } catch (err: any) {
       console.error('Update feedback error:', err);
       setError(err.message || 'Failed to update feedback');
@@ -138,11 +179,17 @@ export function AdminView({ session }: AdminViewProps) {
     );
   }
 
+  const filteredFeedback = feedbackList.filter((feedback) => {
+    const matchesCategory = categoryFilter === 'all' || feedback.category === categoryFilter;
+    const matchesStatus = statusFilter === 'all' || feedback.status === statusFilter;
+    return matchesCategory && matchesStatus;
+  });
+
   return (
     <Box>
       <Box className="flex justify-between items-center mb-4">
         <Typography variant="h4">Feedback Review Dashboard</Typography>
-        <Chip label={`${feedbackList.length} Total`} color="primary" />
+        <Chip label={`${filteredFeedback.length} of ${feedbackList.length}`} color="primary" />
       </Box>
 
       {error && (
@@ -150,6 +197,48 @@ export function AdminView({ session }: AdminViewProps) {
           {error}
         </Alert>
       )}
+
+      <Card sx={{ mb: 3, boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.37)' }}>
+        <CardContent sx={{ p: 3 }}>
+          <Typography variant="h6" gutterBottom>
+            Filters
+          </Typography>
+          <Grid container spacing={2}>
+            <Grid item xs={12} md={6}>
+              <FormControl fullWidth>
+                <InputLabel>Category</InputLabel>
+                <Select
+                  value={categoryFilter}
+                  label="Category"
+                  onChange={(e) => setCategoryFilter(e.target.value)}
+                >
+                  <MenuItem value="all">All Categories</MenuItem>
+                  {CATEGORIES.map((cat) => (
+                    <MenuItem key={cat} value={cat}>
+                      {cat}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <FormControl fullWidth>
+                <InputLabel>Status</InputLabel>
+                <Select
+                  value={statusFilter}
+                  label="Status"
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                >
+                  <MenuItem value="all">All Statuses</MenuItem>
+                  <MenuItem value="pending">Pending</MenuItem>
+                  <MenuItem value="accepted">Accepted</MenuItem>
+                  <MenuItem value="declined">Declined</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+          </Grid>
+        </CardContent>
+      </Card>
 
       {feedbackList.length === 0 ? (
         <Card sx={{ boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.37)' }}>
@@ -159,14 +248,27 @@ export function AdminView({ session }: AdminViewProps) {
             </Typography>
           </CardContent>
         </Card>
+      ) : filteredFeedback.length === 0 ? (
+        <Card sx={{ boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.37)' }}>
+          <CardContent sx={{ p: 3 }}>
+            <Typography variant="body1" color="text.secondary" align="center">
+              No feedback matches your filters.
+            </Typography>
+          </CardContent>
+        </Card>
       ) : (
         <Box>
-          {feedbackList.map((feedback) => (
+          {filteredFeedback.map((feedback) => (
             <Accordion key={feedback.id} sx={{ mb: 2, boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.37)' }}>
               <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                 <Box className="flex-1">
-                  <Box className="flex items-center gap-2 mb-1">
+                  <Box className="flex items-center gap-2 mb-1 flex-wrap">
                     <Typography variant="h6">{feedback.title}</Typography>
+                    <Chip
+                      label={feedback.category}
+                      size="small"
+                      color={getCategoryColor(feedback.category)}
+                    />
                     <Chip
                       label={feedback.status}
                       size="small"
@@ -218,6 +320,25 @@ export function AdminView({ session }: AdminViewProps) {
                     </Grid>
                   )}
 
+                  {feedback.adminComment && (
+                    <Grid item xs={12}>
+                      <Box
+                        sx={{
+                          p: 2,
+                          borderRadius: 1,
+                          backgroundColor: 'action.hover',
+                        }}
+                      >
+                        <Typography variant="subtitle2" gutterBottom>
+                          Admin Response:
+                        </Typography>
+                        <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
+                          {feedback.adminComment}
+                        </Typography>
+                      </Box>
+                    </Grid>
+                  )}
+
                   <Grid item xs={12}>
                     <Box className="flex items-center justify-between">
                       <Typography variant="caption" color="text.secondary">
@@ -228,7 +349,7 @@ export function AdminView({ session }: AdminViewProps) {
                         <Button
                           color="success"
                           startIcon={<CheckCircleIcon />}
-                          onClick={() => updateFeedbackStatus(feedback.id, 'accepted')}
+                          onClick={() => openCommentDialog(feedback.id, 'accepted')}
                           disabled={feedback.status === 'accepted'}
                         >
                           Accept
@@ -236,7 +357,7 @@ export function AdminView({ session }: AdminViewProps) {
                         <Button
                           color="error"
                           startIcon={<CancelIcon />}
-                          onClick={() => updateFeedbackStatus(feedback.id, 'declined')}
+                          onClick={() => openCommentDialog(feedback.id, 'declined')}
                           disabled={feedback.status === 'declined'}
                         >
                           Decline
@@ -250,6 +371,53 @@ export function AdminView({ session }: AdminViewProps) {
           ))}
         </Box>
       )}
+
+      <Dialog
+        open={commentDialogOpen}
+        onClose={closeCommentDialog}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: {
+            backdropFilter: 'blur(20px)',
+            boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.37)',
+          },
+        }}
+      >
+        <DialogTitle>
+          {selectedFeedback?.status === 'accepted' ? 'Accept Feedback' : 'Decline Feedback'}
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Add a comment to explain your decision to the student (optional but recommended):
+          </Typography>
+          <TextField
+            autoFocus
+            fullWidth
+            multiline
+            rows={4}
+            label="Admin Comment"
+            placeholder={
+              selectedFeedback?.status === 'accepted'
+                ? 'e.g., Great suggestion! We will implement this feature...'
+                : 'e.g., Thank you for the feedback, but we cannot implement this because...'
+            }
+            value={adminComment}
+            onChange={(e) => setAdminComment(e.target.value)}
+            sx={{ mt: 1 }}
+          />
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button onClick={closeCommentDialog}>Cancel</Button>
+          <Button
+            onClick={submitFeedbackUpdate}
+            variant="contained"
+            color={selectedFeedback?.status === 'accepted' ? 'success' : 'error'}
+          >
+            {selectedFeedback?.status === 'accepted' ? 'Accept' : 'Decline'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

@@ -11,7 +11,9 @@ import {
   Alert,
   Tabs,
   Tab,
+  Divider,
 } from '@mui/material';
+import { Google as GoogleIcon } from '@mui/icons-material';
 import { projectId, publicAnonKey } from '../../../utils/supabase/info';
 
 interface AuthFormProps {
@@ -28,6 +30,28 @@ export function AuthForm({ supabase }: AuthFormProps) {
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const handleGoogleSignIn = async () => {
+    setError('');
+    setLoading(true);
+
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: window.location.origin,
+        },
+      });
+
+      if (error) {
+        throw error;
+      }
+    } catch (err: any) {
+      console.error('Google sign-in error:', err);
+      setError(err.message || 'Google sign-in failed');
+      setLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -104,6 +128,24 @@ export function AuthForm({ supabase }: AuthFormProps) {
             <Tab label="Sign In" value="login" />
             <Tab label="Sign Up" value="signup" />
           </Tabs>
+
+          <Button
+            variant="outlined"
+            fullWidth
+            size="large"
+            startIcon={<GoogleIcon />}
+            onClick={handleGoogleSignIn}
+            disabled={loading}
+            sx={{ mb: 2 }}
+          >
+            Continue with Google
+          </Button>
+
+          <Divider sx={{ my: 3 }}>
+            <Typography variant="body2" color="text.secondary">
+              OR
+            </Typography>
+          </Divider>
 
           {mode === 'signup' && (
             <Box sx={{ mb: 3 }}>

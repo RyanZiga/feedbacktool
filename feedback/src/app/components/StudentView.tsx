@@ -20,6 +20,10 @@ import {
   Grid,
   Link,
   Divider,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from '@mui/material';
 import {
   Delete as DeleteIcon,
@@ -28,6 +32,7 @@ import {
 } from '@mui/icons-material';
 import { projectId } from '../../../utils/supabase/info';
 import { supabase } from '../../utils/supabase';
+import { CATEGORIES, getCategoryColor } from '../../utils/categoryUtils';
 
 interface StudentViewProps {
   session: any;
@@ -36,6 +41,7 @@ interface StudentViewProps {
 export function StudentView({ session }: StudentViewProps) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const [category, setCategory] = useState('');
   const [attachments, setAttachments] = useState<any[]>([]);
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -158,6 +164,7 @@ export function StudentView({ session }: StudentViewProps) {
           body: JSON.stringify({
             title,
             description,
+            category,
             attachments,
           }),
         }
@@ -173,6 +180,7 @@ export function StudentView({ session }: StudentViewProps) {
       setMessage({ type: 'success', text: 'Feedback submitted successfully!' });
       setTitle('');
       setDescription('');
+      setCategory('');
       setAttachments([]);
       loadFeedbackHistory(); // Reload history to show new submission
     } catch (err: any) {
@@ -201,6 +209,21 @@ export function StudentView({ session }: StudentViewProps) {
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Brief summary of your feedback"
             />
+
+            <FormControl fullWidth required margin="normal">
+              <InputLabel>Category</InputLabel>
+              <Select
+                value={category}
+                label="Category"
+                onChange={(e) => setCategory(e.target.value)}
+              >
+                {CATEGORIES.map((cat) => (
+                  <MenuItem key={cat} value={cat}>
+                    {cat}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
 
             <TextField
               label="Description"
@@ -303,8 +326,13 @@ export function StudentView({ session }: StudentViewProps) {
             <Accordion key={feedback.id} sx={{ mb: 2, boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.37)' }}>
               <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                 <Box className="flex-1">
-                  <Box className="flex items-center gap-2 mb-1">
+                  <Box className="flex items-center gap-2 mb-1 flex-wrap">
                     <Typography variant="h6">{feedback.title}</Typography>
+                    <Chip
+                      label={feedback.category}
+                      size="small"
+                      color={getCategoryColor(feedback.category)}
+                    />
                     <Chip
                       label={feedback.status}
                       size="small"
@@ -355,7 +383,37 @@ export function StudentView({ session }: StudentViewProps) {
                     </Grid>
                   )}
 
-                  {feedback.reviewedBy && (
+                  {feedback.adminComment && (
+                    <Grid item xs={12}>
+                      <Box
+                        sx={{
+                          p: 2,
+                          borderRadius: 2,
+                          backgroundColor: feedback.status === 'accepted'
+                            ? 'success.main'
+                            : feedback.status === 'declined'
+                            ? 'error.main'
+                            : 'warning.main',
+                          color: 'white',
+                          opacity: 0.9,
+                        }}
+                      >
+                        <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 'bold' }}>
+                          Admin Response:
+                        </Typography>
+                        <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
+                          {feedback.adminComment}
+                        </Typography>
+                        {feedback.reviewedBy && (
+                          <Typography variant="caption" sx={{ display: 'block', mt: 1, opacity: 0.9 }}>
+                            — {feedback.reviewedBy}, {new Date(feedback.reviewedAt).toLocaleString()}
+                          </Typography>
+                        )}
+                      </Box>
+                    </Grid>
+                  )}
+
+                  {feedback.reviewedBy && !feedback.adminComment && (
                     <Grid item xs={12}>
                       <Typography variant="caption" color="text.secondary">
                         Reviewed by {feedback.reviewedBy} on{' '}
