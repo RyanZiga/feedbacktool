@@ -192,13 +192,13 @@ export function StudentView({ session }: StudentViewProps) {
   };
 
   return (
-    <Box>
-      <Typography variant="h4" gutterBottom>
+    <Box sx={{ width: '100%', overflow: 'hidden' }}>
+      <Typography variant="h4" gutterBottom sx={{ fontSize: { xs: '1.5rem', sm: '2rem' } }}>
         Submit Feedback
       </Typography>
 
       <Card sx={{ mb: 4, boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.37)' }}>
-        <CardContent sx={{ p: 3 }}>
+        <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
           <form onSubmit={handleSubmit}>
             <TextField
               label="Feedback Title"
@@ -304,7 +304,7 @@ export function StudentView({ session }: StudentViewProps) {
 
       <Divider sx={{ my: 4 }} />
 
-      <Typography variant="h4" gutterBottom>
+      <Typography variant="h4" gutterBottom sx={{ fontSize: { xs: '1.5rem', sm: '2rem' } }}>
         My Feedback History
       </Typography>
 
@@ -327,11 +327,14 @@ export function StudentView({ session }: StudentViewProps) {
               <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                 <Box className="flex-1">
                   <Box className="flex items-center gap-2 mb-1 flex-wrap">
-                    <Typography variant="h6">{feedback.title}</Typography>
+                    <Typography variant="h6" sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}>
+                      {feedback.title}
+                    </Typography>
                     <Chip
                       label={feedback.category}
                       size="small"
                       color={getCategoryColor(feedback.category)}
+                      sx={{ fontSize: { xs: '0.65rem', sm: '0.75rem' } }}
                     />
                     <Chip
                       label={feedback.status}
@@ -343,27 +346,28 @@ export function StudentView({ session }: StudentViewProps) {
                           ? 'error'
                           : 'warning'
                       }
+                      sx={{ fontSize: { xs: '0.65rem', sm: '0.75rem' } }}
                     />
                   </Box>
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
                     Submitted on {new Date(feedback.createdAt).toLocaleString()}
                   </Typography>
                 </Box>
               </AccordionSummary>
-              <AccordionDetails>
+              <AccordionDetails sx={{ p: { xs: 2, sm: 3 } }}>
                 <Grid container spacing={3}>
-                  <Grid item xs={12}>
-                    <Typography variant="subtitle2" gutterBottom>
+                  <Grid size={12}>
+                    <Typography variant="subtitle2" gutterBottom sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
                       Description:
                     </Typography>
-                    <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
+                    <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap', fontSize: { xs: '0.875rem', sm: '1rem' } }}>
                       {feedback.description}
                     </Typography>
                   </Grid>
 
                   {feedback.attachments && feedback.attachments.length > 0 && (
-                    <Grid item xs={12}>
-                      <Typography variant="subtitle2" gutterBottom>
+                    <Grid size={12}>
+                      <Typography variant="subtitle2" gutterBottom sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
                         Attachments ({feedback.attachments.length}):
                       </Typography>
                       <Box className="flex flex-col gap-2">
@@ -374,6 +378,7 @@ export function StudentView({ session }: StudentViewProps) {
                               href={attachment.url}
                               target="_blank"
                               rel="noopener noreferrer"
+                              sx={{ fontSize: { xs: '0.875rem', sm: '1rem' }, wordBreak: 'break-word' }}
                             >
                               {attachment.fileName}
                             </Link>
@@ -384,10 +389,10 @@ export function StudentView({ session }: StudentViewProps) {
                   )}
 
                   {feedback.adminComment && (
-                    <Grid item xs={12}>
+                    <Grid size={12}>
                       <Box
                         sx={{
-                          p: 2,
+                          p: { xs: 1.5, sm: 2 },
                           borderRadius: 2,
                           backgroundColor: feedback.status === 'accepted'
                             ? 'success.main'
@@ -398,14 +403,14 @@ export function StudentView({ session }: StudentViewProps) {
                           opacity: 0.9,
                         }}
                       >
-                        <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 'bold' }}>
+                        <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 'bold', fontSize: { xs: '0.875rem', sm: '1rem' } }}>
                           Admin Response:
                         </Typography>
-                        <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
+                        <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', fontSize: { xs: '0.875rem', sm: '1rem' } }}>
                           {feedback.adminComment}
                         </Typography>
                         {feedback.reviewedBy && (
-                          <Typography variant="caption" sx={{ display: 'block', mt: 1, opacity: 0.9 }}>
+                          <Typography variant="caption" sx={{ display: 'block', mt: 1, opacity: 0.9, fontSize: { xs: '0.65rem', sm: '0.75rem' } }}>
                             — {feedback.reviewedBy}, {new Date(feedback.reviewedAt).toLocaleString()}
                           </Typography>
                         )}
@@ -414,8 +419,8 @@ export function StudentView({ session }: StudentViewProps) {
                   )}
 
                   {feedback.reviewedBy && !feedback.adminComment && (
-                    <Grid item xs={12}>
-                      <Typography variant="caption" color="text.secondary">
+                    <Grid size={12}>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: { xs: '0.65rem', sm: '0.75rem' } }}>
                         Reviewed by {feedback.reviewedBy} on{' '}
                         {new Date(feedback.reviewedAt).toLocaleString()}
                       </Typography>

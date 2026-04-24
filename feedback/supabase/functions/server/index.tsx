@@ -276,6 +276,113 @@ app.get("/make-server-8a3aee84/my-feedback", async (c) => {
   }
 });
 
+// Get all users endpoint (admin only)
+app.get("/make-server-8a3aee84/users", async (c) => {
+  try {
+    const accessToken = c.req.header('Authorization')?.split(' ')[1];
+
+    if (!accessToken) {
+      return c.json({ error: 'Unauthorized - no access token provided' }, 401);
+    }
+
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+    );
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser(accessToken);
+
+    if (authError || !user) {
+      console.log(`Auth error while fetching users: ${authError?.message}`);
+      return c.json({ error: 'Unauthorized - invalid token' }, 401);
+    }
+
+    const role = user.user_metadata?.role;
+    if (role !== 'admin') {
+      return c.json({ error: 'Only admins can view users' }, 403);
+    }
+
+    const { data: { users }, error: usersError } = await supabase.auth.admin.listUsers();
+
+    if (usersError) {
+      console.log(`Error fetching users: ${usersError.message}`);
+      return c.json({ error: usersError.message }, 400);
+    }
+
+    const formattedUsers = users.map(u => ({
+      id: u.id,
+      email: u.email,
+      name: u.user_metadata?.name || u.email?.split('@')[0],
+      role: u.user_metadata?.role || 'student',
+      createdAt: u.created_at,
+    }));
+
+    return c.json({ users: formattedUsers });
+  } catch (error) {
+    console.log(`Error fetching users: ${error}`);
+    return c.json({ error: 'Internal server error while fetching users' }, 500);
+  }
+});
+
+// Create admin account endpoint (admin only)
+app.post("/make-server-8a3aee84/create-admin", async (c) => {
+  try {
+    const accessToken = c.req.header('Authorization')?.split(' ')[1];
+
+    if (!accessToken) {
+      return c.json({ error: 'Unauthorized - no access token provided' }, 401);
+    }
+
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+    );
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser(accessToken);
+
+    if (authError || !user) {
+      console.log(`Auth error while creating admin: ${authError?.message}`);
+      return c.json({ error: 'Unauthorized - invalid token' }, 401);
+    }
+
+    const role = user.user_metadata?.role;
+    if (role !== 'admin') {
+      return c.json({ error: 'Only admins can create admin accounts' }, 403);
+    }
+
+    const { email, password, name } = await c.req.json();
+
+    if (!email || !password || !name) {
+      return c.json({ error: 'Missing required fields: email, password, name' }, 400);
+    }
+
+    const { data, error } = await supabase.auth.admin.createUser({
+      email,
+      password,
+      user_metadata: { name, role: 'admin' },
+      email_confirm: true
+    });
+
+    if (error) {
+      console.log(`Create admin error for ${email}: ${error.message}`);
+      return c.json({ error: error.message }, 400);
+    }
+
+    return c.json({
+      message: 'Admin account created successfully',
+      user: {
+        id: data.user.id,
+        email: data.user.email,
+        name,
+        role: 'admin'
+      }
+    });
+  } catch (error) {
+    console.log(`Error creating admin: ${error}`);
+    return c.json({ error: 'Internal server error while creating admin' }, 500);
+  }
+});
+
 // Upload attachment endpoint
 app.post("/make-server-8a3aee84/upload", async (c) => {
   try {

@@ -1,38 +1,4 @@
-import { useState } from 'react';
-import { AdminLayout } from './admin/AdminLayout';
-import { AdminDashboard } from './admin/AdminDashboard';
-import { AdminFeedbacks } from './admin/AdminFeedbacks';
-import { AdminUsers } from './admin/AdminUsers';
-
-interface AdminViewProps {
-  session: any;
-  onSignOut: () => void;
-  toggleTheme: () => void;
-}
-
-export function AdminView({ session, onSignOut, toggleTheme }: AdminViewProps) {
-  const [currentView, setCurrentView] = useState<'dashboard' | 'feedbacks' | 'users'>('dashboard');
-
-  const userName = session?.user?.user_metadata?.name || session?.user?.email?.split('@')[0] || 'Admin';
-
-  return (
-    <AdminLayout
-      currentView={currentView}
-      onViewChange={setCurrentView}
-      userName={userName}
-      onSignOut={onSignOut}
-      toggleTheme={toggleTheme}
-    >
-      {currentView === 'dashboard' && <AdminDashboard session={session} />}
-      {currentView === 'feedbacks' && <AdminFeedbacks session={session} />}
-      {currentView === 'users' && <AdminUsers session={session} />}
-    </AdminLayout>
-  );
-}
-
-/*
-// Old AdminView code - keeping as reference temporarily
-import { useState_OLD, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Box,
   Card,
@@ -57,8 +23,6 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  ToggleButtonGroup,
-  ToggleButton,
 } from '@mui/material';
 import {
   ExpandMore as ExpandMoreIcon,
@@ -66,11 +30,11 @@ import {
   CheckCircle as CheckCircleIcon,
   Cancel as CancelIcon
 } from '@mui/icons-material';
-import { projectId } from '../../../utils/supabase/info';
-import { supabase } from '../../utils/supabase';
-import { CATEGORIES, getCategoryColor } from '../../utils/categoryUtils';
+import { projectId } from '../../../../utils/supabase/info';
+import { supabase } from '../../../utils/supabase';
+import { CATEGORIES, getCategoryColor } from '../../../utils/categoryUtils';
 
-interface AdminViewProps {
+interface AdminFeedbacksProps {
   session: any;
 }
 
@@ -90,7 +54,7 @@ interface Feedback {
   reviewedAt?: string;
 }
 
-export function AdminView({ session }: AdminViewProps) {
+export function AdminFeedbacks({ session }: AdminFeedbacksProps) {
   const [feedbackList, setFeedbackList] = useState<Feedback[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -193,7 +157,6 @@ export function AdminView({ session }: AdminViewProps) {
         throw new Error(data.error || 'Failed to update feedback');
       }
 
-      // Reload feedback list to show updated status
       await loadFeedback();
       setAdminComment('');
       setSelectedFeedback(null);
@@ -220,11 +183,10 @@ export function AdminView({ session }: AdminViewProps) {
   });
 
   return (
-    <Box>
-      <Box className="flex justify-between items-center mb-4">
-        <Typography variant="h4">Feedback Review Dashboard</Typography>
-        <Chip label={`${filteredFeedback.length} of ${feedbackList.length}`} color="primary" />
-      </Box>
+    <Box sx={{ width: '100%', overflow: 'hidden' }}>
+      <Typography variant="h4" gutterBottom sx={{ mb: 3, fontSize: { xs: '1.5rem', sm: '2rem' } }}>
+        Feedbacks
+      </Typography>
 
       {error && (
         <Alert severity="error" sx={{ mb: 3 }}>
@@ -233,12 +195,9 @@ export function AdminView({ session }: AdminViewProps) {
       )}
 
       <Card sx={{ mb: 3, boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.37)' }}>
-        <CardContent sx={{ p: 3 }}>
-          <Typography variant="h6" gutterBottom>
-            Filters
-          </Typography>
-          <Grid container spacing={2}>
-            <Grid item xs={12} md={6}>
+        <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+          <Grid container spacing={2} alignItems="stretch">
+            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
               <FormControl fullWidth>
                 <InputLabel>Category</InputLabel>
                 <Select
@@ -255,7 +214,7 @@ export function AdminView({ session }: AdminViewProps) {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 4 }}>
               <FormControl fullWidth>
                 <InputLabel>Status</InputLabel>
                 <Select
@@ -269,6 +228,9 @@ export function AdminView({ session }: AdminViewProps) {
                   <MenuItem value="declined">Declined</MenuItem>
                 </Select>
               </FormControl>
+            </Grid>
+            <Grid size={{ xs: 12, md: 4 }}>
+              <Chip label={`${filteredFeedback.length} of ${feedbackList.length}`} color="primary" />
             </Grid>
           </Grid>
         </CardContent>
@@ -323,7 +285,7 @@ export function AdminView({ session }: AdminViewProps) {
               </AccordionSummary>
               <AccordionDetails>
                 <Grid container spacing={3}>
-                  <Grid item xs={12}>
+                  <Grid size={12}>
                     <Typography variant="subtitle2" gutterBottom>
                       Description:
                     </Typography>
@@ -333,7 +295,7 @@ export function AdminView({ session }: AdminViewProps) {
                   </Grid>
 
                   {feedback.attachments && feedback.attachments.length > 0 && (
-                    <Grid item xs={12}>
+                    <Grid size={12}>
                       <Typography variant="subtitle2" gutterBottom>
                         Attachments ({feedback.attachments.length}):
                       </Typography>
@@ -355,7 +317,7 @@ export function AdminView({ session }: AdminViewProps) {
                   )}
 
                   {feedback.adminComment && (
-                    <Grid item xs={12}>
+                    <Grid size={12}>
                       <Box
                         sx={{
                           p: 2,
@@ -373,7 +335,7 @@ export function AdminView({ session }: AdminViewProps) {
                     </Grid>
                   )}
 
-                  <Grid item xs={12}>
+                  <Grid size={12}>
                     <Box className="flex items-center justify-between">
                       <Typography variant="caption" color="text.secondary">
                         Feedback ID: {feedback.id}
@@ -455,4 +417,3 @@ export function AdminView({ session }: AdminViewProps) {
     </Box>
   );
 }
-*/

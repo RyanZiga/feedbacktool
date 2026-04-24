@@ -8,8 +8,11 @@ import {
   Typography,
   Alert,
   Divider,
+  IconButton,
+  InputAdornment,
 } from '@mui/material';
-import { Google as GoogleIcon } from '@mui/icons-material';
+import { Google as GoogleIcon, Visibility, VisibilityOff } from '@mui/icons-material';
+import logo from '../../imports/Picsart_26-04-17_15-00-28-825.png';
 
 interface AuthFormProps {
   supabase: any;
@@ -22,6 +25,7 @@ export function AuthForm({ supabase }: AuthFormProps) {
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleGoogleSignIn = async () => {
     setError('');
@@ -77,12 +81,23 @@ export function AuthForm({ supabase }: AuthFormProps) {
         }}
       >
         <CardContent sx={{ p: 4 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>
+            <img
+              src={logo}
+              alt="Northeastern Cebu Colleges"
+              style={{
+                width: '120px',
+                height: '120px',
+              }}
+            />
+          </Box>
+
           <Typography variant="h4" component="h1" gutterBottom align="center">
             Sign In
           </Typography>
 
           <Typography variant="body2" color="text.secondary" align="center" sx={{ mb: 3 }}>
-            Sign in to access the feedback system
+            Northeastern Cebu Colleges Feedback System
           </Typography>
 
           <Button
@@ -119,7 +134,7 @@ export function AuthForm({ supabase }: AuthFormProps) {
 
             <TextField
               label="Password"
-              type="password"
+              type={showPassword ? 'text' : 'password'}
               fullWidth
               required
               margin="normal"
@@ -127,6 +142,21 @@ export function AuthForm({ supabase }: AuthFormProps) {
               onChange={(e) =>
                 setFormData({ ...formData, password: e.target.value })
               }
+              slotProps={{
+                input: {
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        onClick={() => setShowPassword(!showPassword)}
+                        onMouseDown={(e) => e.preventDefault()}
+                        edge="end"
+                      >
+                        {showPassword ? <VisibilityOff /> : <Visibility />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                },
+              }}
             />
 
             {error && (
