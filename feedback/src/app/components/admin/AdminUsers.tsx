@@ -22,6 +22,11 @@ import {
   Paper,
   IconButton,
   InputAdornment,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  TablePagination,
 } from '@mui/material';
 import { Add as AddIcon, AdminPanelSettings as AdminIcon, Person as PersonIcon, Visibility, VisibilityOff } from '@mui/icons-material';
 import { projectId } from '../../../../utils/supabase/info';
@@ -46,6 +51,8 @@ export function AdminUsers({ session }: AdminUsersProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [creating, setCreating] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -148,6 +155,15 @@ export function AdminUsers({ session }: AdminUsersProps) {
     }
   };
 
+  const handleChangePage = (_event: unknown, newPage: number) => {
+    setPage(newPage);
+  };
+
+  const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
+  };
+
   if (loading) {
     return (
       <Box className="flex items-center justify-center py-12">
@@ -158,6 +174,11 @@ export function AdminUsers({ session }: AdminUsersProps) {
 
   const adminCount = users.filter(u => u.role === 'admin').length;
   const studentCount = users.filter(u => u.role === 'student').length;
+
+  // Calculate pagination
+  const paginatedUsers = users.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+  const startEntry = users.length === 0 ? 0 : page * rowsPerPage + 1;
+  const endEntry = Math.min((page + 1) * rowsPerPage, users.length);
 
   return (
     <Box sx={{ width: '100%', overflow: 'hidden' }}>
@@ -189,26 +210,48 @@ export function AdminUsers({ session }: AdminUsersProps) {
         </Alert>
       )}
 
-      <Box sx={{ mb: 3, display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-        <Chip
-          icon={<PersonIcon />}
-          label={`Students: ${studentCount}`}
-          color="primary"
-          variant="outlined"
-          sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
-        />
-        <Chip
-          icon={<AdminIcon />}
-          label={`Admins: ${adminCount}`}
-          color="secondary"
-          variant="outlined"
-          sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
-        />
-        <Chip
-          label={`Total: ${users.length}`}
-          color="default"
-          sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
-        />
+      <Box sx={{ mb: 3, display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between' }}>
+        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+          <Chip
+            icon={<PersonIcon />}
+            label={`Students: ${studentCount}`}
+            color="primary"
+            variant="outlined"
+            sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
+          />
+          <Chip
+            icon={<AdminIcon />}
+            label={`Admins: ${adminCount}`}
+            color="secondary"
+            variant="outlined"
+            sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
+          />
+          <Chip
+            label={`Total: ${users.length}`}
+            color="default"
+            sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
+          />
+        </Box>
+        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+          <Typography variant="body2" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
+            Showing {startEntry}-{endEntry} of {users.length}
+          </Typography>
+          <FormControl size="small" sx={{ minWidth: 100 }}>
+            <InputLabel sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>Per page</InputLabel>
+            <Select
+              value={rowsPerPage}
+              label="Per page"
+              onChange={(e) => handleChangeRowsPerPage(e as any)}
+              sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
+            >
+              <MenuItem value={5}>5</MenuItem>
+              <MenuItem value={10}>10</MenuItem>
+              <MenuItem value={25}>25</MenuItem>
+              <MenuItem value={50}>50</MenuItem>
+              <MenuItem value={100}>100</MenuItem>
+            </Select>
+          </FormControl>
+        </Box>
       </Box>
 
       <Card sx={{ boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.37)' }}>
@@ -223,7 +266,7 @@ export function AdminUsers({ session }: AdminUsersProps) {
               </TableRow>
             </TableHead>
             <TableBody>
-              {users.map((user) => (
+              {paginatedUsers.map((user) => (
                 <TableRow key={user.id}>
                   <TableCell sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, p: { xs: 1.5, sm: 2 } }}>
                     {user.name}
@@ -248,6 +291,23 @@ export function AdminUsers({ session }: AdminUsersProps) {
             </TableBody>
           </Table>
         </TableContainer>
+        <TablePagination
+          rowsPerPageOptions={[5, 10, 25, 50, 100]}
+          component="div"
+          count={users.length}
+          rowsPerPage={rowsPerPage}
+          page={page}
+          onPageChange={handleChangePage}
+          onRowsPerPageChange={handleChangeRowsPerPage}
+          sx={{
+            borderTop: '1px solid',
+            borderColor: 'divider',
+            backgroundColor: 'transparent',
+            '& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows': {
+              fontSize: { xs: '0.75rem', sm: '0.875rem' },
+            },
+          }}
+        />
       </Card>
 
       <Dialog

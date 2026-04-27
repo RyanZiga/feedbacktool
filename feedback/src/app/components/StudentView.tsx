@@ -24,11 +24,17 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Fab,
 } from '@mui/material';
 import {
   Delete as DeleteIcon,
   AttachFile as AttachFileIcon,
-  ExpandMore as ExpandMoreIcon
+  ExpandMore as ExpandMoreIcon,
+  Add as AddIcon,
 } from '@mui/icons-material';
 import { projectId } from '../../../utils/supabase/info';
 import { supabase } from '../../utils/supabase';
@@ -50,6 +56,7 @@ export function StudentView({ session }: StudentViewProps) {
   );
   const [feedbackHistory, setFeedbackHistory] = useState<any[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(true);
+  const [modalOpen, setModalOpen] = useState(false);
 
   useEffect(() => {
     loadFeedbackHistory();
@@ -183,6 +190,12 @@ export function StudentView({ session }: StudentViewProps) {
       setCategory('');
       setAttachments([]);
       loadFeedbackHistory(); // Reload history to show new submission
+
+      // Close modal after a brief delay to show success message
+      setTimeout(() => {
+        setModalOpen(false);
+        setMessage(null);
+      }, 1500);
     } catch (err: any) {
       console.error('Submit error:', err);
       setMessage({ type: 'error', text: err.message || 'Failed to submit feedback' });
@@ -191,122 +204,32 @@ export function StudentView({ session }: StudentViewProps) {
     }
   };
 
+  const handleOpenModal = () => {
+    setModalOpen(true);
+    setMessage(null);
+  };
+
+  const handleCloseModal = () => {
+    setModalOpen(false);
+    setMessage(null);
+  };
+
   return (
     <Box sx={{ width: '100%', overflow: 'hidden' }}>
-      <Typography variant="h4" gutterBottom sx={{ fontSize: { xs: '1.5rem', sm: '2rem' } }}>
-        Submit Feedback
-      </Typography>
-
-      <Card sx={{ mb: 4, boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.37)' }}>
-        <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
-          <form onSubmit={handleSubmit}>
-            <TextField
-              label="Feedback Title"
-              fullWidth
-              required
-              margin="normal"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Brief summary of your feedback"
-            />
-
-            <FormControl fullWidth required margin="normal">
-              <InputLabel>Category</InputLabel>
-              <Select
-                value={category}
-                label="Category"
-                onChange={(e) => setCategory(e.target.value)}
-              >
-                {CATEGORIES.map((cat) => (
-                  <MenuItem key={cat} value={cat}>
-                    {cat}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-
-            <TextField
-              label="Description"
-              fullWidth
-              required
-              multiline
-              rows={6}
-              margin="normal"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Provide detailed feedback here..."
-            />
-
-            <Box sx={{ mt: 3, mb: 2 }}>
-              <Typography variant="subtitle2" gutterBottom>
-                Attachments
-              </Typography>
-
-              <Button
-                variant="outlined"
-                component="label"
-                startIcon={uploading ? <CircularProgress size={20} /> : <AttachFileIcon />}
-                disabled={uploading}
-              >
-                {uploading ? 'Uploading...' : 'Add Attachment'}
-                <input
-                  type="file"
-                  hidden
-                  onChange={handleFileUpload}
-                  accept="image/*,.pdf,.doc,.docx,.txt"
-                />
-              </Button>
-
-              {attachments.length > 0 && (
-                <Paper variant="outlined" sx={{ mt: 2, backdropFilter: 'blur(10px)' }}>
-                  <List>
-                    {attachments.map((attachment, index) => (
-                      <ListItem
-                        key={index}
-                        secondaryAction={
-                          <IconButton
-                            edge="end"
-                            onClick={() => handleRemoveAttachment(index)}
-                          >
-                            <DeleteIcon />
-                          </IconButton>
-                        }
-                      >
-                        <ListItemText
-                          primary={attachment.fileName}
-                          secondary={`Uploaded on ${new Date().toLocaleDateString()}`}
-                        />
-                      </ListItem>
-                    ))}
-                  </List>
-                </Paper>
-              )}
-            </Box>
-
-            {message && (
-              <Alert severity={message.type} sx={{ mt: 2 }}>
-                {message.text}
-              </Alert>
-            )}
-
-            <Button
-              type="submit"
-              variant="contained"
-              size="large"
-              disabled={submitting}
-              sx={{ mt: 3 }}
-            >
-              {submitting ? 'Submitting...' : 'Submit Feedback'}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
-
-      <Divider sx={{ my: 4 }} />
-
-      <Typography variant="h4" gutterBottom sx={{ fontSize: { xs: '1.5rem', sm: '2rem' } }}>
-        My Feedback History
-      </Typography>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 2 }}>
+        <Typography variant="h4" gutterBottom sx={{ fontSize: { xs: '1.5rem', sm: '2rem' }, mb: 0 }}>
+          My Feedback History
+        </Typography>
+        <Button
+          variant="contained"
+          size="large"
+          startIcon={<AddIcon />}
+          onClick={handleOpenModal}
+          sx={{ boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.37)' }}
+        >
+          Submit Feedback
+        </Button>
+      </Box>
 
       {loadingHistory ? (
         <Box className="flex items-center justify-center py-12">
@@ -432,6 +355,141 @@ export function StudentView({ session }: StudentViewProps) {
           ))}
         </Box>
       )}
+
+      <Dialog
+        open={modalOpen}
+        onClose={handleCloseModal}
+        maxWidth="md"
+        fullWidth
+        PaperProps={{
+          sx: {
+            backdropFilter: 'blur(20px)',
+            boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.37)',
+          },
+        }}
+      >
+        <DialogTitle>Submit Feedback</DialogTitle>
+        <form onSubmit={handleSubmit}>
+          <DialogContent>
+            <TextField
+              label="Feedback Title"
+              fullWidth
+              required
+              margin="normal"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Brief summary of your feedback"
+            />
+
+            <FormControl fullWidth required margin="normal">
+              <InputLabel>Category</InputLabel>
+              <Select
+                value={category}
+                label="Category"
+                onChange={(e) => setCategory(e.target.value)}
+              >
+                {CATEGORIES.map((cat) => (
+                  <MenuItem key={cat} value={cat}>
+                    {cat}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            <TextField
+              label="Description"
+              fullWidth
+              required
+              multiline
+              rows={6}
+              margin="normal"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Provide detailed feedback here..."
+            />
+
+            <Box sx={{ mt: 3, mb: 2 }}>
+              <Typography variant="subtitle2" gutterBottom>
+                Attachments
+              </Typography>
+
+              <Button
+                variant="outlined"
+                component="label"
+                startIcon={uploading ? <CircularProgress size={20} /> : <AttachFileIcon />}
+                disabled={uploading}
+              >
+                {uploading ? 'Uploading...' : 'Add Attachment'}
+                <input
+                  type="file"
+                  hidden
+                  onChange={handleFileUpload}
+                  accept="image/*,.pdf,.doc,.docx,.txt"
+                />
+              </Button>
+
+              {attachments.length > 0 && (
+                <Paper variant="outlined" sx={{ mt: 2, backdropFilter: 'blur(10px)' }}>
+                  <List>
+                    {attachments.map((attachment, index) => (
+                      <ListItem
+                        key={index}
+                        secondaryAction={
+                          <IconButton
+                            edge="end"
+                            onClick={() => handleRemoveAttachment(index)}
+                          >
+                            <DeleteIcon />
+                          </IconButton>
+                        }
+                      >
+                        <ListItemText
+                          primary={attachment.fileName}
+                          secondary={`Uploaded on ${new Date().toLocaleDateString()}`}
+                        />
+                      </ListItem>
+                    ))}
+                  </List>
+                </Paper>
+              )}
+            </Box>
+
+            {message && (
+              <Alert severity={message.type} sx={{ mt: 2 }}>
+                {message.text}
+              </Alert>
+            )}
+          </DialogContent>
+          <DialogActions sx={{ p: 3 }}>
+            <Button onClick={handleCloseModal} disabled={submitting}>
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              variant="contained"
+              size="large"
+              disabled={submitting}
+            >
+              {submitting ? 'Submitting...' : 'Submit Feedback'}
+            </Button>
+          </DialogActions>
+        </form>
+      </Dialog>
+
+      <Fab
+        color="primary"
+        aria-label="add feedback"
+        onClick={handleOpenModal}
+        sx={{
+          position: 'fixed',
+          bottom: 24,
+          right: 24,
+          boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.37)',
+          display: { xs: 'flex', sm: 'none' },
+        }}
+      >
+        <AddIcon />
+      </Fab>
     </Box>
   );
 }

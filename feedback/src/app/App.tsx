@@ -153,7 +153,22 @@ function AppContent() {
         },
       }}
     >
-      <AppBar position="static" color="transparent" elevation={0} sx={{ position: 'relative', zIndex: 1 }}>
+      <AppBar
+        position="sticky"
+        color="transparent"
+        elevation={0}
+        sx={{
+          top: 0,
+          zIndex: 10,
+          backdropFilter: 'blur(20px)',
+          backgroundColor: mode === 'dark'
+            ? 'rgba(30, 41, 59, 0.8)'
+            : 'rgba(255, 255, 255, 0.8)',
+          borderBottom: mode === 'dark'
+            ? '1px solid rgba(255, 255, 255, 0.1)'
+            : '1px solid rgba(0, 0, 0, 0.1)',
+        }}
+      >
         <Toolbar>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexGrow: 1 }}>
             <img
