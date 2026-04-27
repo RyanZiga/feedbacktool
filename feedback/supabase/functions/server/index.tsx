@@ -314,6 +314,7 @@ app.get("/make-server-8a3aee84/users", async (c) => {
       email: u.email,
       name: u.user_metadata?.name || u.email?.split('@')[0],
       role: u.user_metadata?.role || 'student',
+      studentId: u.user_metadata?.studentId || null,
       createdAt: u.created_at,
     }));
 
@@ -380,6 +381,90 @@ app.post("/make-server-8a3aee84/create-admin", async (c) => {
   } catch (error) {
     console.log(`Error creating admin: ${error}`);
     return c.json({ error: 'Internal server error while creating admin' }, 500);
+  }
+});
+
+// Update user endpoint (admin only)
+app.put("/make-server-8a3aee84/users/:id", async (c) => {
+  try {
+    const accessToken = c.req.header('Authorization')?.split(' ')[1];
+
+    if (!accessToken) {
+      return c.json({ error: 'Unauthorized - no access token provided' }, 401);
+    }
+
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+    );
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser(accessToken);
+
+    if (authError || !user) {
+      console.log(`Auth error while updating user: ${authError?.message}`);
+      return c.json({ error: 'Unauthorized - invalid token' }, 401);
+    }
+
+    const role = user.user_metadata?.role;
+    if (role !== 'admin') {
+      return c.json({ error: 'Only admins can update users' }, 403);
+    }
+
+    const userId = c.req.param('id');
+    const { name, email, studentId } = await c.req.json();
+
+    if (!name || !email) {
+      return c.json({ error: 'Missing required fields: name, email' }, 400);
+    }
+
+    // Get the current user to preserve their role
+    const { data: currentUser, error: getUserError } = await supabase.auth.admin.getUserById(userId);
+
+    if (getUserError || !currentUser) {
+      console.log(`Error fetching user ${userId}: ${getUserError?.message}`);
+      return c.json({ error: 'User not found' }, 404);
+    }
+
+    const currentRole = currentUser.user.user_metadata?.role || 'student';
+
+    // Build the user_metadata object
+    const userMetadata: any = {
+      name,
+      role: currentRole,
+    };
+
+    // Only add studentId if the user is a student
+    if (currentRole === 'student' && studentId !== undefined) {
+      userMetadata.studentId = studentId;
+    }
+
+    // Update user metadata and email
+    const { data, error } = await supabase.auth.admin.updateUserById(
+      userId,
+      {
+        email,
+        user_metadata: userMetadata,
+      }
+    );
+
+    if (error) {
+      console.log(`Update user error for ${userId}: ${error.message}`);
+      return c.json({ error: error.message }, 400);
+    }
+
+    return c.json({
+      message: 'User updated successfully',
+      user: {
+        id: data.user.id,
+        email: data.user.email,
+        name: data.user.user_metadata?.name,
+        role: data.user.user_metadata?.role,
+        studentId: data.user.user_metadata?.studentId || null,
+      }
+    });
+  } catch (error) {
+    console.log(`Error updating user: ${error}`);
+    return c.json({ error: 'Internal server error while updating user' }, 500);
   }
 });
 
